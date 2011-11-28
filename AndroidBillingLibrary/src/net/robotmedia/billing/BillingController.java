@@ -254,9 +254,9 @@ public class BillingController {
 	 * @param state
 	 *            new purchase state of the item.
 	 */
-	private static void notifyPurchaseStateChange(String itemId, Transaction.PurchaseState state) {
+	private static void notifyPurchaseStateChange(Transaction tx) {
 		for (IBillingObserver o : observers) {
-			o.onPurchaseStateChanged(itemId, state);
+			o.onPurchaseStateChanged(tx);
 		}
 	}
 
@@ -342,18 +342,7 @@ public class BillingController {
 			return;
 		}
 
-		if (!debug) {
-			if (TextUtils.isEmpty(signature)) {
-				Log.w(LOG_TAG, "Empty signature requires debug mode");
-				return;
-			}
-			final ISignatureValidator validator = BillingController.validator != null ? BillingController.validator
-					: new DefaultSignatureValidator(BillingController.configuration);
-			if (!validator.validate(signedData, signature)) {
-				Log.w(LOG_TAG, "Signature does not match data.");
-				return;
-			}
-		}
+		
 
 		List<Transaction> purchases;
 		try {
@@ -368,6 +357,11 @@ public class BillingController {
 			return;
 		}
 
+		if (!validate(signedData, signature)) {
+			Log.e(LOG_TAG, "Signature is invalid");
+			return;
+		}
+
 		ArrayList<String> confirmations = new ArrayList<String>();
 		for (Transaction p : purchases) {
 			if (p.notificationId != null && automaticConfirmations.contains(p.productId)) {
@@ -378,12 +372,35 @@ public class BillingController {
 				addManualConfirmation(p.productId, p.notificationId);
 			}
 			storeTransaction(context, p);
-			notifyPurchaseStateChange(p.productId, p.purchaseState);
+			notifyPurchaseStateChange(p);
 		}
 		if (!confirmations.isEmpty()) {
 			final String[] notifyIds = confirmations.toArray(new String[confirmations.size()]);
 			confirmNotifications(context, notifyIds);
 		}
+	}
+
+	/**
+	 * Validate the data using the configured validator.
+	 * 
+	 * @param signedData
+	 * @param signature
+	 * @return
+	 */
+	private static boolean validate(String signedData, String signature) {
+		// if (!debug) {
+			if (TextUtils.isEmpty(signature)) {
+				Log.w(LOG_TAG, "Empty signature requires debug mode");
+				return false;
+			}
+			final ISignatureValidator validator = BillingController.validator != null ? BillingController.validator
+					: new DefaultSignatureValidator(BillingController.configuration);
+			if (!validator.validate(signedData, signature)) {
+				Log.w(LOG_TAG, "Signature does not match data.");
+				return false;
+			}
+		// }
+		return true;
 	}
 
 	/**
@@ -481,7 +498,7 @@ public class BillingController {
 	 * @see #requestPurchase(Context, String, boolean)
 	 */
 	public static void requestPurchase(Context context, String itemId) {
-		requestPurchase(context, itemId, false);
+		requestPurchase(context, itemId, false, null);
 	}
 
 	/**
@@ -497,11 +514,11 @@ public class BillingController {
 	 *            to {@link #confirmNotifications(Context, String)}.
 	 * @see IBillingObserver#onPurchaseIntent(String, PendingIntent)
 	 */
-	public static void requestPurchase(Context context, String itemId, boolean confirm) {
+	public static void requestPurchase(Context context, String itemId, boolean confirm, String developerPayload) {
 		if (confirm) {
 			automaticConfirmations.add(itemId);
 		}
-		BillingService.requestPurchase(context, itemId, null);
+		BillingService.requestPurchase(context, itemId, developerPayload);
 	}
 
 	/**

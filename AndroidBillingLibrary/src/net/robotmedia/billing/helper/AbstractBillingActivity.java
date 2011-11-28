@@ -18,6 +18,7 @@ package net.robotmedia.billing.helper;
 import net.robotmedia.billing.BillingController;
 import net.robotmedia.billing.BillingController.BillingStatus;
 import net.robotmedia.billing.BillingRequest.ResponseCode;
+import net.robotmedia.billing.model.Transaction;
 import net.robotmedia.billing.model.Transaction.PurchaseState;
 import android.app.Activity;
 
@@ -52,8 +53,8 @@ public abstract class AbstractBillingActivity extends Activity implements Billin
 			}
 
 			@Override
-			public void onPurchaseStateChanged(String itemId, PurchaseState state) {
-				AbstractBillingActivity.this.onPurchaseStateChanged(itemId, state);
+			public void onPurchaseStateChanged(Transaction tx) {
+				AbstractBillingActivity.this.onPurchaseStateChanged(tx);
 			}
 
 			@Override
@@ -80,7 +81,7 @@ public abstract class AbstractBillingActivity extends Activity implements Billin
 		BillingController.setConfiguration(null);
 	}
 
-	public abstract void onPurchaseStateChanged(String itemId, PurchaseState state);;
+	public abstract void onPurchaseStateChanged(Transaction tx);
 
 	public abstract void onRequestPurchaseResponse(String itemId, ResponseCode response);
 

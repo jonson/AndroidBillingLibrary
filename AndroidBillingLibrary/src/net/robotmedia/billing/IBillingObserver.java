@@ -16,6 +16,7 @@
 package net.robotmedia.billing;
 
 import net.robotmedia.billing.BillingRequest.ResponseCode;
+import net.robotmedia.billing.model.Transaction;
 import net.robotmedia.billing.model.Transaction.PurchaseState;
 import android.app.PendingIntent;
 
@@ -45,12 +46,9 @@ public interface IBillingObserver {
 	/**
 	 * Called when the specified item is purchased, cancelled or refunded.
 	 * 
-	 * @param itemId
-	 *            id of the item whose purchase state has changed.
-	 * @param state
-	 *            purchase state of the specified item.
+	 * @param tx The transaction which was changed
 	 */
-	public void onPurchaseStateChanged(String itemId, PurchaseState state);
+	public void onPurchaseStateChanged(Transaction tx);
 
 	/**
 	 * Called with the response for the purchase request of the specified item.
