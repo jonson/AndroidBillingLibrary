@@ -37,6 +37,7 @@ import android.app.PendingIntent;
 import android.app.PendingIntent.CanceledException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentSender.SendIntentException;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -70,6 +71,8 @@ public class BillingController {
 	private static BillingStatus status = BillingStatus.UNKNOWN;
 
 	private static Set<String> automaticConfirmations = new HashSet<String>();
+	private static boolean autoConfirmAll = false;
+	
 	private static IConfiguration configuration = null;
 	private static boolean debug = false;
 	private static ISignatureValidator validator = null;
@@ -364,7 +367,7 @@ public class BillingController {
 
 		ArrayList<String> confirmations = new ArrayList<String>();
 		for (Transaction p : purchases) {
-			if (p.notificationId != null && automaticConfirmations.contains(p.productId)) {
+			if (p.notificationId != null && (autoConfirmAll || automaticConfirmations.contains(p.productId)) ) {
 				confirmations.add(p.notificationId);
 			} else {
 				// TODO: Discriminate between purchases, cancellations and
@@ -572,19 +575,10 @@ public class BillingController {
 	 * @param intent
 	 */
 	public static void startPurchaseIntent(Activity activity, PendingIntent purchaseIntent, Intent intent) {
-		if (Compatibility.isStartIntentSenderSupported()) {
-			// This is on Android 2.0 and beyond. The in-app buy page activity
-			// must be on the activity stack of the application.
-			Compatibility.startIntentSender(activity, purchaseIntent.getIntentSender(), intent);
-		} else {
-			// This is on Android version 1.6. The in-app buy page activity must
-			// be on its own separate activity stack instead of on the activity
-			// stack of the application.
-			try {
-				purchaseIntent.send(activity, 0 /* code */, intent);
-			} catch (CanceledException e) {
-				Log.e(LOG_TAG, "Error starting purchase intent", e);
-			}
+		try {
+			activity.startIntentSender(purchaseIntent.getIntentSender(), intent, 0, 0, 0);
+		} catch (SendIntentException e) {
+			Log.e(LOG_TAG, "Error starting purchase intent", e);
 		}
 	}
 
@@ -646,4 +640,13 @@ public class BillingController {
 		}
 	}
 
+	/**
+	 * Sets whether or not to auto-confirm all valid transactions. 
+	 * 
+	 * @param autoConfirmAll
+	 */
+	public static void setAutoConfirmAll(boolean autoConfirmAll) {
+		BillingController.autoConfirmAll = autoConfirmAll;
+	}
+	
 }
